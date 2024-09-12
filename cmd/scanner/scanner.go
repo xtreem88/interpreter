@@ -7,7 +7,15 @@ const (
 	RIGHT_PAREN TokenType = "RIGHT_PAREN"
 	LEFT_BRACE  TokenType = "LEFT_BRACE"
 	RIGHT_BRACE TokenType = "RIGHT_BRACE"
-	EOF         TokenType = "EOF"
+
+	COMMA     TokenType = "COMMA"
+	DOT       TokenType = "DOT"
+	MINUS     TokenType = "MINUS"
+	PLUS      TokenType = "PLUS"
+	SEMICOLON TokenType = "SEMICOLON"
+	STAR      TokenType = "STAR"
+
+	EOF TokenType = "EOF"
 )
 
 type Token struct {
@@ -48,6 +56,18 @@ func (s *Scanner) scanToken() {
 		s.addToken(LEFT_BRACE)
 	case '}':
 		s.addToken(RIGHT_BRACE)
+	case ',':
+		s.addToken(COMMA)
+	case '.':
+		s.addToken(DOT)
+	case '-':
+		s.addToken(MINUS)
+	case '+':
+		s.addToken(PLUS)
+	case ';':
+		s.addToken(SEMICOLON)
+	case '*':
+		s.addToken(STAR)
 	}
 }
 
