@@ -40,3 +40,7 @@ func (a *AstPrinter) VisitGroupingExpr(expr *parser.Grouping) interface{} {
 func (a *AstPrinter) VisitUnaryExpr(expr *parser.Unary) interface{} {
 	return fmt.Sprintf("(%s %s)", expr.Operator.Lexeme, a.Print(expr.Right))
 }
+
+func (a *AstPrinter) VisitBinaryExpr(expr *parser.Binary) interface{} {
+	return fmt.Sprintf("(%s %s %s)", expr.Operator.Lexeme, a.Print(expr.Left), a.Print(expr.Right))
+}

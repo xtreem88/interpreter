@@ -40,10 +40,21 @@ func (u *Unary) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitUnaryExpr(u)
 }
 
+type Binary struct {
+	Left     Expr
+	Operator scanner.Token
+	Right    Expr
+}
+
+func (b *Binary) Accept(visitor ExprVisitor) interface{} {
+	return visitor.VisitBinaryExpr(b)
+}
+
 type ExprVisitor interface {
 	VisitLiteralExpr(expr *Literal) interface{}
 	VisitGroupingExpr(expr *Grouping) interface{}
 	VisitUnaryExpr(expr *Unary) interface{}
+	VisitBinaryExpr(expr *Binary) interface{}
 }
 
 func NewParser(tokens []scanner.Token) *Parser {
@@ -55,7 +66,43 @@ func (p *Parser) Parse() (Expr, error) {
 }
 
 func (p *Parser) expression() (Expr, error) {
-	return p.unary()
+	return p.term()
+}
+
+func (p *Parser) term() (Expr, error) {
+	expr, err := p.factor()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(scanner.MINUS, scanner.PLUS) {
+		operator := p.previous()
+		right, err := p.factor()
+		if err != nil {
+			return nil, err
+		}
+		expr = &Binary{Left: expr, Operator: operator, Right: right}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) factor() (Expr, error) {
+	expr, err := p.unary()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(scanner.SLASH, scanner.STAR) {
+		operator := p.previous()
+		right, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
+		expr = &Binary{Left: expr, Operator: operator, Right: right}
+	}
+
+	return expr, nil
 }
 
 func (p *Parser) unary() (Expr, error) {
