@@ -27,5 +27,8 @@ func (a *AstPrinter) VisitLiteralExpr(expr *parser.Literal) interface{} {
 		}
 		return fmt.Sprintf("%g", number)
 	}
+	if str, ok := expr.Value.(string); ok {
+		return str
+	}
 	return fmt.Sprintf("%v", expr.Value)
 }
