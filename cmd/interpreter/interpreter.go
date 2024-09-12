@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/parser"
+	"github.com/codecrafters-io/interpreter-starter-go/cmd/scanner"
 )
 
 type Interpreter struct{}
@@ -25,7 +26,20 @@ func (i *Interpreter) VisitGroupingExpr(expr *parser.Grouping) interface{} {
 }
 
 func (i *Interpreter) VisitUnaryExpr(expr *parser.Unary) interface{} {
-	// We'll implement this later
+	right := i.Evaluate(expr.Right)
+
+	switch expr.Operator.Type {
+	case scanner.MINUS:
+		if num, ok := right.(float64); ok {
+			return -num
+		}
+		// Handle error: Operand must be a number
+		panic(fmt.Sprintf("Operand must be a number"))
+	case scanner.BANG:
+		return !i.isTruthy(right)
+	}
+
+	// Unreachable
 	return nil
 }
 
@@ -44,5 +58,22 @@ func (i *Interpreter) Stringify(object interface{}) string {
 		}
 		return "false"
 	}
+	if num, ok := object.(float64); ok {
+		text := fmt.Sprintf("%g", num)
+		if text[len(text)-2:] == ".0" {
+			text = text[:len(text)-2]
+		}
+		return text
+	}
 	return fmt.Sprintf("%v", object)
+}
+
+func (i *Interpreter) isTruthy(object interface{}) bool {
+	if object == nil {
+		return false
+	}
+	if b, ok := object.(bool); ok {
+		return b
+	}
+	return true
 }
