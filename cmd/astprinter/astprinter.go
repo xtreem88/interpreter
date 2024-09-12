@@ -32,3 +32,7 @@ func (a *AstPrinter) VisitLiteralExpr(expr *parser.Literal) interface{} {
 	}
 	return fmt.Sprintf("%v", expr.Value)
 }
+
+func (a *AstPrinter) VisitGroupingExpr(expr *parser.Grouping) interface{} {
+	return fmt.Sprintf("(group %s)", a.Print(expr.Expression))
+}

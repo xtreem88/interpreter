@@ -23,8 +23,17 @@ func (l *Literal) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitLiteralExpr(l)
 }
 
+type Grouping struct {
+	Expression Expr
+}
+
+func (g *Grouping) Accept(visitor ExprVisitor) interface{} {
+	return visitor.VisitGroupingExpr(g)
+}
+
 type ExprVisitor interface {
 	VisitLiteralExpr(expr *Literal) interface{}
+	VisitGroupingExpr(expr *Grouping) interface{}
 }
 
 func NewParser(tokens []scanner.Token) *Parser {
@@ -49,11 +58,19 @@ func (p *Parser) primary() (Expr, error) {
 	if p.match(scanner.NIL) {
 		return &Literal{Value: nil}, nil
 	}
-	if p.match(scanner.NUMBER) {
+	if p.match(scanner.NUMBER, scanner.STRING) {
 		return &Literal{Value: p.previous().Literal}, nil
 	}
-	if p.match(scanner.STRING) {
-		return &Literal{Value: p.previous().Literal}, nil
+	if p.match(scanner.LEFT_PAREN) {
+		expr, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		_, err = p.consume(scanner.RIGHT_PAREN, "Expect ')' after expression.")
+		if err != nil {
+			return nil, err
+		}
+		return &Grouping{Expression: expr}, nil
 	}
 
 	return nil, fmt.Errorf("Expect expression.")
@@ -93,4 +110,12 @@ func (p *Parser) peek() scanner.Token {
 
 func (p *Parser) previous() scanner.Token {
 	return p.tokens[p.current-1]
+}
+
+func (p *Parser) consume(t scanner.TokenType, message string) (scanner.Token, error) {
+	if p.check(t) {
+		return p.advance(), nil
+	}
+
+	return scanner.Token{}, fmt.Errorf("%s", message)
 }
