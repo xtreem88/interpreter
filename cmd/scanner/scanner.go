@@ -8,17 +8,26 @@ import (
 type TokenType string
 
 const (
-	LEFT_PAREN  TokenType = "LEFT_PAREN"
-	RIGHT_PAREN TokenType = "RIGHT_PAREN"
-	LEFT_BRACE  TokenType = "LEFT_BRACE"
-	RIGHT_BRACE TokenType = "RIGHT_BRACE"
-	COMMA       TokenType = "COMMA"
-	DOT         TokenType = "DOT"
-	MINUS       TokenType = "MINUS"
-	PLUS        TokenType = "PLUS"
-	SEMICOLON   TokenType = "SEMICOLON"
-	STAR        TokenType = "STAR"
-	EOF         TokenType = "EOF"
+	LEFT_PAREN    TokenType = "LEFT_PAREN"
+	RIGHT_PAREN   TokenType = "RIGHT_PAREN"
+	LEFT_BRACE    TokenType = "LEFT_BRACE"
+	RIGHT_BRACE   TokenType = "RIGHT_BRACE"
+	COMMA         TokenType = "COMMA"
+	DOT           TokenType = "DOT"
+	MINUS         TokenType = "MINUS"
+	PLUS          TokenType = "PLUS"
+	SEMICOLON     TokenType = "SEMICOLON"
+	STAR          TokenType = "STAR"
+	EQUAL         TokenType = "EQUAL"
+	EQUAL_EQUAL   TokenType = "EQUAL_EQUAL"
+	BANG          TokenType = "BANG"
+	BANG_EQUAL    TokenType = "BANG_EQUAL"
+	LESS          TokenType = "LESS"
+	LESS_EQUAL    TokenType = "LESS_EQUAL"
+	GREATER       TokenType = "GREATER"
+	GREATER_EQUAL TokenType = "GREATER_EQUAL"
+
+	EOF TokenType = "EOF"
 )
 
 type Token struct {
@@ -74,9 +83,44 @@ func (s *Scanner) scanToken() {
 		s.addToken(SEMICOLON)
 	case '*':
 		s.addToken(STAR)
+	case '=':
+		if s.match('=') {
+			s.addToken(EQUAL_EQUAL)
+		} else {
+			s.addToken(EQUAL)
+		}
+	case '!':
+		if s.match('=') {
+			s.addToken(BANG_EQUAL)
+		} else {
+			s.addToken(BANG)
+		}
+	case '<':
+		if s.match('=') {
+			s.addToken(LESS_EQUAL)
+		} else {
+			s.addToken(LESS)
+		}
+	case '>':
+		if s.match('=') {
+			s.addToken(GREATER_EQUAL)
+		} else {
+			s.addToken(GREATER)
+		}
 	default:
 		s.error(fmt.Sprintf("Unexpected character: %c", c))
 	}
+}
+
+func (s *Scanner) match(expected byte) bool {
+	if s.isAtEnd() {
+		return false
+	}
+	if s.source[s.current] != expected {
+		return false
+	}
+	s.current++
+	return true
 }
 
 func (s *Scanner) advance() byte {
