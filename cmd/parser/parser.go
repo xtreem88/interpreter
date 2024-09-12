@@ -31,9 +31,19 @@ func (g *Grouping) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitGroupingExpr(g)
 }
 
+type Unary struct {
+	Operator scanner.Token
+	Right    Expr
+}
+
+func (u *Unary) Accept(visitor ExprVisitor) interface{} {
+	return visitor.VisitUnaryExpr(u)
+}
+
 type ExprVisitor interface {
 	VisitLiteralExpr(expr *Literal) interface{}
 	VisitGroupingExpr(expr *Grouping) interface{}
+	VisitUnaryExpr(expr *Unary) interface{}
 }
 
 func NewParser(tokens []scanner.Token) *Parser {
@@ -45,6 +55,19 @@ func (p *Parser) Parse() (Expr, error) {
 }
 
 func (p *Parser) expression() (Expr, error) {
+	return p.unary()
+}
+
+func (p *Parser) unary() (Expr, error) {
+	if p.match(scanner.BANG, scanner.MINUS) {
+		operator := p.previous()
+		right, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
+		return &Unary{Operator: operator, Right: right}, nil
+	}
+
 	return p.primary()
 }
 
