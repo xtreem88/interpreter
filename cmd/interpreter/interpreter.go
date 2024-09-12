@@ -45,6 +45,10 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 	right := i.Evaluate(expr.Right)
 
 	switch expr.Operator.Type {
+	case scanner.MINUS:
+		return i.checkNumberOperand(left) - i.checkNumberOperand(right)
+	case scanner.PLUS:
+		return i.checkNumberOperand(left) + i.checkNumberOperand(right)
 	case scanner.STAR:
 		return i.checkNumberOperand(left) * i.checkNumberOperand(right)
 	case scanner.SLASH:
