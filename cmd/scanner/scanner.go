@@ -3,6 +3,7 @@ package scanner
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 type TokenType string
@@ -28,6 +29,7 @@ const (
 	GREATER       TokenType = "GREATER"
 	GREATER_EQUAL TokenType = "GREATER_EQUAL"
 	STRING        TokenType = "STRING"
+	NUMBER        TokenType = "NUMBER"
 
 	EOF TokenType = "EOF"
 )
@@ -125,7 +127,11 @@ func (s *Scanner) scanToken() {
 	case '\n':
 		s.line++
 	default:
-		s.error(fmt.Sprintf("Unexpected character: %c", c))
+		if isDigit(c) {
+			s.number()
+		} else {
+			s.error(fmt.Sprintf("Unexpected character: %c", c))
+		}
 	}
 }
 
@@ -150,6 +156,25 @@ func (s *Scanner) string() {
 	s.addTokenWithLiteral(STRING, value)
 }
 
+func (s *Scanner) number() {
+	for isDigit(s.peek()) {
+		s.advance()
+	}
+
+	// Look for a fractional part.
+	if s.peek() == '.' && isDigit(s.peekNext()) {
+		// Consume the "."
+		s.advance()
+
+		for isDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	value, _ := strconv.ParseFloat(s.source[s.start:s.current], 64)
+	s.addTokenWithLiteral(NUMBER, value)
+}
+
 func (s *Scanner) match(expected byte) bool {
 	if s.isAtEnd() {
 		return false
@@ -166,6 +191,13 @@ func (s *Scanner) peek() byte {
 		return 0
 	}
 	return s.source[s.current]
+}
+
+func (s *Scanner) peekNext() byte {
+	if s.current+1 >= len(s.source) {
+		return 0
+	}
+	return s.source[s.current+1]
 }
 
 func (s *Scanner) advance() byte {
@@ -193,4 +225,8 @@ func (s *Scanner) error(message string) {
 
 func (s *Scanner) HadError() bool {
 	return s.hadError
+}
+
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }

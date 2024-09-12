@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/scanner"
@@ -32,7 +33,15 @@ func main() {
 
 	for _, token := range tokens {
 		if token.Literal != nil {
-			fmt.Printf("%s %s %v\n", token.Type, token.Lexeme, token.Literal)
+			if number, ok := token.Literal.(float64); ok {
+				if math.Floor(number) == number {
+					fmt.Printf("%s %s %.1f\n", token.Type, token.Lexeme, number)
+				} else {
+					fmt.Printf("%s %s %g\n", token.Type, token.Lexeme, number)
+				}
+			} else {
+				fmt.Printf("%s %s %v\n", token.Type, token.Lexeme, token.Literal)
+			}
 		} else {
 			fmt.Printf("%s %s null\n", token.Type, token.Lexeme)
 		}
