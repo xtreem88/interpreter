@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/parser"
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/scanner"
@@ -30,11 +31,7 @@ func (i *Interpreter) VisitUnaryExpr(expr *parser.Unary) interface{} {
 
 	switch expr.Operator.Type {
 	case scanner.MINUS:
-		if num, ok := right.(float64); ok {
-			return -num
-		}
-		// Handle error: Operand must be a number
-		panic(fmt.Sprintf("Operand must be a number"))
+		return -i.checkNumberOperand(right)
 	case scanner.BANG:
 		return !i.isTruthy(right)
 	}
@@ -44,8 +41,29 @@ func (i *Interpreter) VisitUnaryExpr(expr *parser.Unary) interface{} {
 }
 
 func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
-	// We'll implement this later
+	left := i.Evaluate(expr.Left)
+	right := i.Evaluate(expr.Right)
+
+	switch expr.Operator.Type {
+	case scanner.STAR:
+		return i.checkNumberOperand(left) * i.checkNumberOperand(right)
+	case scanner.SLASH:
+		rightNum := i.checkNumberOperand(right)
+		if rightNum == 0 {
+			panic(fmt.Sprintf("Division by zero"))
+		}
+		return i.checkNumberOperand(left) / rightNum
+	}
+
+	// Unreachable
 	return nil
+}
+
+func (i *Interpreter) checkNumberOperand(operand interface{}) float64 {
+	if num, ok := operand.(float64); ok {
+		return num
+	}
+	panic(fmt.Sprintf("Operand must be a number"))
 }
 
 func (i *Interpreter) Stringify(object interface{}) string {
@@ -59,11 +77,7 @@ func (i *Interpreter) Stringify(object interface{}) string {
 		return "false"
 	}
 	if num, ok := object.(float64); ok {
-		text := fmt.Sprintf("%g", num)
-		if text[len(text)-2:] == ".0" {
-			text = text[:len(text)-2]
-		}
-		return text
+		return strconv.FormatFloat(num, 'f', -1, 64)
 	}
 	return fmt.Sprintf("%v", object)
 }
