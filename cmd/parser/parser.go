@@ -66,7 +66,25 @@ func (p *Parser) Parse() (Expr, error) {
 }
 
 func (p *Parser) expression() (Expr, error) {
-	return p.term()
+	return p.comparison()
+}
+
+func (p *Parser) comparison() (Expr, error) {
+	expr, err := p.term()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(scanner.GREATER, scanner.GREATER_EQUAL, scanner.LESS, scanner.LESS_EQUAL) {
+		operator := p.previous()
+		right, err := p.term()
+		if err != nil {
+			return nil, err
+		}
+		expr = &Binary{Left: expr, Operator: operator, Right: right}
+	}
+
+	return expr, nil
 }
 
 func (p *Parser) term() (Expr, error) {
