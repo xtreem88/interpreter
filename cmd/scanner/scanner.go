@@ -30,6 +30,24 @@ const (
 	GREATER_EQUAL TokenType = "GREATER_EQUAL"
 	STRING        TokenType = "STRING"
 	NUMBER        TokenType = "NUMBER"
+	IDENTIFIER    TokenType = "IDENTIFIER"
+
+	AND    TokenType = "AND"
+	CLASS  TokenType = "CLASS"
+	ELSE   TokenType = "ELSE"
+	FALSE  TokenType = "FALSE"
+	FUN    TokenType = "FUN"
+	FOR    TokenType = "FOR"
+	IF     TokenType = "IF"
+	NIL    TokenType = "NIL"
+	OR     TokenType = "OR"
+	PRINT  TokenType = "PRINT"
+	RETURN TokenType = "RETURN"
+	SUPER  TokenType = "SUPER"
+	THIS   TokenType = "THIS"
+	TRUE   TokenType = "TRUE"
+	VAR    TokenType = "VAR"
+	WHILE  TokenType = "WHILE"
 
 	EOF TokenType = "EOF"
 )
@@ -48,6 +66,25 @@ type Scanner struct {
 	current  int
 	line     int
 	hadError bool
+}
+
+var keywords = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
 }
 
 func NewScanner(source string) *Scanner {
@@ -129,10 +166,25 @@ func (s *Scanner) scanToken() {
 	default:
 		if isDigit(c) {
 			s.number()
+		} else if isAlpha(c) {
+			s.identifier()
 		} else {
 			s.error(fmt.Sprintf("Unexpected character: %c", c))
 		}
 	}
+}
+
+func (s *Scanner) identifier() {
+	for isAlphaNumeric(s.peek()) {
+		s.advance()
+	}
+
+	text := s.source[s.start:s.current]
+	tokenType, exists := keywords[text]
+	if !exists {
+		tokenType = IDENTIFIER
+	}
+	s.addToken(tokenType)
 }
 
 func (s *Scanner) string() {
@@ -229,4 +281,12 @@ func (s *Scanner) HadError() bool {
 
 func isDigit(c byte) bool {
 	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+func isAlphaNumeric(c byte) bool {
+	return isAlpha(c) || isDigit(c)
 }
