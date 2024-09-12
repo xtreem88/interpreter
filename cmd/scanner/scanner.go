@@ -18,6 +18,7 @@ const (
 	PLUS          TokenType = "PLUS"
 	SEMICOLON     TokenType = "SEMICOLON"
 	STAR          TokenType = "STAR"
+	SLASH         TokenType = "SLASH"
 	EQUAL         TokenType = "EQUAL"
 	EQUAL_EQUAL   TokenType = "EQUAL_EQUAL"
 	BANG          TokenType = "BANG"
@@ -26,8 +27,7 @@ const (
 	LESS_EQUAL    TokenType = "LESS_EQUAL"
 	GREATER       TokenType = "GREATER"
 	GREATER_EQUAL TokenType = "GREATER_EQUAL"
-
-	SLASH TokenType = "SLASH"
+	STRING        TokenType = "STRING"
 
 	EOF TokenType = "EOF"
 )
@@ -118,6 +118,8 @@ func (s *Scanner) scanToken() {
 		} else {
 			s.addToken(SLASH)
 		}
+	case '"':
+		s.string()
 	case ' ', '\r', '\t':
 		// Ignore whitespace.
 	case '\n':
@@ -125,6 +127,27 @@ func (s *Scanner) scanToken() {
 	default:
 		s.error(fmt.Sprintf("Unexpected character: %c", c))
 	}
+}
+
+func (s *Scanner) string() {
+	for s.peek() != '"' && !s.isAtEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		s.error("Unterminated string.")
+		return
+	}
+
+	// The closing ".
+	s.advance()
+
+	// Trim the surrounding quotes.
+	value := s.source[s.start+1 : s.current-1]
+	s.addTokenWithLiteral(STRING, value)
 }
 
 func (s *Scanner) match(expected byte) bool {
@@ -151,8 +174,12 @@ func (s *Scanner) advance() byte {
 }
 
 func (s *Scanner) addToken(tokenType TokenType) {
+	s.addTokenWithLiteral(tokenType, nil)
+}
+
+func (s *Scanner) addTokenWithLiteral(tokenType TokenType, literal interface{}) {
 	text := s.source[s.start:s.current]
-	s.tokens = append(s.tokens, Token{Type: tokenType, Lexeme: text, Literal: nil, Line: s.line})
+	s.tokens = append(s.tokens, Token{Type: tokenType, Lexeme: text, Literal: literal, Line: s.line})
 }
 
 func (s *Scanner) isAtEnd() bool {

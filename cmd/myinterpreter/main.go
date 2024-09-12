@@ -31,7 +31,11 @@ func main() {
 	tokens := scanner.ScanTokens()
 
 	for _, token := range tokens {
-		fmt.Printf("%s %s null\n", token.Type, token.Lexeme)
+		if token.Literal != nil {
+			fmt.Printf("%s %s %v\n", token.Type, token.Lexeme, token.Literal)
+		} else {
+			fmt.Printf("%s %s null\n", token.Type, token.Lexeme)
+		}
 	}
 
 	if scanner.HadError() {
