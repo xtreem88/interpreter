@@ -27,6 +27,8 @@ const (
 	GREATER       TokenType = "GREATER"
 	GREATER_EQUAL TokenType = "GREATER_EQUAL"
 
+	SLASH TokenType = "SLASH"
+
 	EOF TokenType = "EOF"
 )
 
@@ -107,6 +109,19 @@ func (s *Scanner) scanToken() {
 		} else {
 			s.addToken(GREATER)
 		}
+	case '/':
+		if s.match('/') {
+			// A comment goes until the end of the line.
+			for s.peek() != '\n' && !s.isAtEnd() {
+				s.advance()
+			}
+		} else {
+			s.addToken(SLASH)
+		}
+	case ' ', '\r', '\t':
+		// Ignore whitespace.
+	case '\n':
+		s.line++
 	default:
 		s.error(fmt.Sprintf("Unexpected character: %c", c))
 	}
@@ -121,6 +136,13 @@ func (s *Scanner) match(expected byte) bool {
 	}
 	s.current++
 	return true
+}
+
+func (s *Scanner) peek() byte {
+	if s.isAtEnd() {
+		return 0
+	}
+	return s.source[s.current]
 }
 
 func (s *Scanner) advance() byte {
