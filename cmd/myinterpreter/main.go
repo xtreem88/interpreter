@@ -33,4 +33,8 @@ func main() {
 	for _, token := range tokens {
 		fmt.Printf("%s %s null\n", token.Type, token.Lexeme)
 	}
+
+	if scanner.HadError() {
+		os.Exit(65)
+	}
 }
