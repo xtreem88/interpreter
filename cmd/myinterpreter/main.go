@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/astprinter"
+	"github.com/codecrafters-io/interpreter-starter-go/cmd/interpreter"
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/parser"
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/scanner"
 )
@@ -55,6 +56,17 @@ func main() {
 
 		printer := astprinter.NewAstPrinter()
 		fmt.Println(printer.Print(expression))
+	case "evaluate":
+		parser := parser.NewParser(tokens)
+		expression, err := parser.Parse()
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
+			os.Exit(65)
+		}
+		interpreter := interpreter.NewInterpreter()
+		result := interpreter.Evaluate(expression)
+		fmt.Println(interpreter.Stringify(result))
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
