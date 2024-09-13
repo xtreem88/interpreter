@@ -65,7 +65,11 @@ func main() {
 			os.Exit(65)
 		}
 		interpreter := interpreter.NewInterpreter()
-		result := interpreter.Evaluate(expression)
+		result, err := interpreter.Evaluate(expression)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+			os.Exit(70)
+		}
 		fmt.Println(interpreter.Stringify(result))
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
