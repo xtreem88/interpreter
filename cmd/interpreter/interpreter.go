@@ -48,6 +48,11 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 	case scanner.MINUS:
 		return i.checkNumberOperand(left) - i.checkNumberOperand(right)
 	case scanner.PLUS:
+		if leftStr, leftOk := left.(string); leftOk {
+			if rightStr, rightOk := right.(string); rightOk {
+				return leftStr + rightStr
+			}
+		}
 		return i.checkNumberOperand(left) + i.checkNumberOperand(right)
 	case scanner.STAR:
 		return i.checkNumberOperand(left) * i.checkNumberOperand(right)
@@ -82,6 +87,9 @@ func (i *Interpreter) Stringify(object interface{}) string {
 	}
 	if num, ok := object.(float64); ok {
 		return strconv.FormatFloat(num, 'f', -1, 64)
+	}
+	if str, ok := object.(string); ok {
+		return str
 	}
 	return fmt.Sprintf("%v", object)
 }
