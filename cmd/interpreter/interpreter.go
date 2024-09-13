@@ -70,10 +70,25 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 		return i.checkNumberOperand(left) < i.checkNumberOperand(right)
 	case scanner.LESS_EQUAL:
 		return i.checkNumberOperand(left) <= i.checkNumberOperand(right)
+	case scanner.EQUAL_EQUAL:
+		return i.isEqual(left, right)
+	case scanner.BANG_EQUAL:
+		return !i.isEqual(left, right)
 	}
 
 	// Unreachable
 	return nil
+}
+
+func (i *Interpreter) isEqual(a, b interface{}) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil {
+		return false
+	}
+
+	return a == b
 }
 
 func (i *Interpreter) checkNumberOperand(operand interface{}) float64 {
