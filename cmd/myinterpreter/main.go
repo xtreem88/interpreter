@@ -46,9 +46,16 @@ func main() {
 				fmt.Printf("%s %s null\n", token.Type, token.Lexeme)
 			}
 		}
+
+		if scanner.HadError() {
+			os.Exit(65)
+		}
 	case "parse":
+		if scanner.HadError() {
+			os.Exit(65)
+		}
 		parser := parser.NewParser(tokens)
-		expression, err := parser.Parse()
+		expression, _, err := parser.Parse()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
 			os.Exit(65)
@@ -57,12 +64,15 @@ func main() {
 		printer := astprinter.NewAstPrinter()
 		fmt.Println(printer.Print(expression))
 	case "evaluate":
+		if scanner.HadError() {
+			os.Exit(65)
+		}
 		parser := parser.NewParser(tokens)
-		expression, err := parser.Parse()
+		expression, _, err := parser.Parse()
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
-			os.Exit(65)
+			os.Exit(70)
 		}
 		interpreter := interpreter.NewInterpreter()
 		result, err := interpreter.Evaluate(expression)
@@ -71,12 +81,25 @@ func main() {
 			os.Exit(70)
 		}
 		fmt.Println(interpreter.Stringify(result))
+	case "run":
+		if scanner.HadError() {
+			os.Exit(65)
+		}
+		parser := parser.NewParser(tokens)
+		_, statements, err := parser.Parse()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
+			os.Exit(65)
+		}
+
+		interpreter := interpreter.NewInterpreter()
+		err = interpreter.Interpret(statements)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+			os.Exit(70)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
-	}
-
-	if scanner.HadError() {
-		os.Exit(65)
 	}
 }

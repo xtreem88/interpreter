@@ -46,6 +46,26 @@ type Binary struct {
 	Right    Expr
 }
 
+type Stmt interface {
+	Accept(visitor StmtVisitor) interface{}
+}
+
+type PrintStmt struct {
+	Expression Expr
+}
+
+func (p *PrintStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitPrintStmt(p)
+}
+
+type ExpressionStmt struct {
+	Expression Expr
+}
+
+func (e *ExpressionStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitExpressionStmt(e)
+}
+
 func (b *Binary) Accept(visitor ExprVisitor) interface{} {
 	return visitor.VisitBinaryExpr(b)
 }
@@ -57,12 +77,64 @@ type ExprVisitor interface {
 	VisitBinaryExpr(expr *Binary) interface{}
 }
 
+type StmtVisitor interface {
+	VisitPrintStmt(stmt *PrintStmt) interface{}
+	VisitExpressionStmt(stmt *ExpressionStmt) interface{}
+}
+
 func NewParser(tokens []scanner.Token) *Parser {
 	return &Parser{tokens: tokens, current: 0}
 }
 
-func (p *Parser) Parse() (Expr, error) {
-	return p.expression()
+func (p *Parser) Parse() (Expr, []Stmt, error) {
+	var statements []Stmt
+	for !p.isAtEnd() {
+		stmt, err := p.statement()
+		if err != nil {
+			return nil, nil, err
+		}
+		statements = append(statements, stmt)
+	}
+
+	// For backwards compatibility, return the first expression if there's only one statement
+	if len(statements) == 1 {
+		if exprStmt, ok := statements[0].(*ExpressionStmt); ok {
+			return exprStmt.Expression, statements, nil
+		}
+	}
+
+	// If there are multiple statements or the single statement is not an expression,
+	// return nil for the expression
+	return nil, statements, nil
+}
+
+func (p *Parser) statement() (Stmt, error) {
+	if p.match(scanner.PRINT) {
+		return p.printStatement()
+	}
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() (Stmt, error) {
+	value, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(scanner.SEMICOLON, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+	return &PrintStmt{Expression: value}, nil
+}
+
+func (p *Parser) expressionStatement() (Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(scanner.SEMICOLON, "Expect ';' after expression.")
+
+	return &ExpressionStmt{Expression: expr}, nil
 }
 
 func (p *Parser) expression() (Expr, error) {

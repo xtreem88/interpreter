@@ -38,6 +38,54 @@ func (i *Interpreter) Evaluate(expr parser.Expr) (result interface{}, err error)
 	return result, nil
 }
 
+func (i *Interpreter) Interpret(statements []parser.Stmt) error {
+	for _, statement := range statements {
+		err := i.execute(statement)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (i *Interpreter) execute(stmt parser.Stmt) error {
+	result := stmt.Accept(i)
+	if err, ok := result.(error); ok {
+		return err
+	}
+	return nil
+}
+
+func (i *Interpreter) VisitPrintStmt(stmt *parser.PrintStmt) interface{} {
+	value, err := i.Evaluate(stmt.Expression)
+	if err != nil {
+		return err
+	}
+	fmt.Println(i.stringify(value))
+	return nil
+}
+
+func (i *Interpreter) VisitExpressionStmt(stmt *parser.ExpressionStmt) interface{} {
+	_, err := i.Evaluate(stmt.Expression)
+	return err
+}
+
+func (i *Interpreter) stringify(value interface{}) string {
+	if value == nil {
+		return "nil"
+	}
+	if b, ok := value.(bool); ok {
+		return strconv.FormatBool(b)
+	}
+	if n, ok := value.(float64); ok {
+		return strconv.FormatFloat(n, 'f', -1, 64)
+	}
+	if s, ok := value.(string); ok {
+		return s
+	}
+	return fmt.Sprintf("%v", value)
+}
+
 func (i *Interpreter) VisitLiteralExpr(expr *parser.Literal) interface{} {
 	return expr.Value
 }
