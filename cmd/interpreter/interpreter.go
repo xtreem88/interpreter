@@ -62,6 +62,14 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 			panic(fmt.Sprintf("Division by zero"))
 		}
 		return i.checkNumberOperand(left) / rightNum
+	case scanner.GREATER:
+		return i.checkNumberOperand(left) > i.checkNumberOperand(right)
+	case scanner.GREATER_EQUAL:
+		return i.checkNumberOperand(left) >= i.checkNumberOperand(right)
+	case scanner.LESS:
+		return i.checkNumberOperand(left) < i.checkNumberOperand(right)
+	case scanner.LESS_EQUAL:
+		return i.checkNumberOperand(left) <= i.checkNumberOperand(right)
 	}
 
 	// Unreachable
