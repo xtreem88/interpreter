@@ -15,7 +15,7 @@ type RuntimeError struct {
 }
 
 func (e *RuntimeError) Error() string {
-	return fmt.Sprintf("%s\n[line %d]", e.message, e.token.Line)
+	return fmt.Sprintf("[line %d]%s\n", e.token.Line, e.message)
 }
 
 type Interpreter struct {
@@ -42,26 +42,29 @@ func (i *Interpreter) Evaluate(expr parser.Expr) (result interface{}, err error)
 }
 
 func (i *Interpreter) Interpret(statements []parser.Stmt) error {
-	for _, statement := range statements {
-		err := i.execute(statement)
+	defer func() {
+		if r := recover(); r != nil {
+			if runtimeErr, ok := r.(*RuntimeError); ok {
+				// Print the runtime error message
+				fmt.Fprintln(os.Stderr, runtimeErr.Error())
+				os.Exit(70)
+			} else {
+				// Re-panic if it's not a RuntimeError
+				panic(r)
+			}
+		}
+	}()
+
+	for _, stmt := range statements {
+		err := i.execute(stmt)
 		if err != nil {
-			return err
+			return err // Return the error to stop execution
 		}
 	}
 	return nil
 }
 
 func (i *Interpreter) execute(stmt parser.Stmt) error {
-	defer func() {
-		if r := recover(); r != nil {
-			if runtimeErr, ok := r.(*RuntimeError); ok {
-				fmt.Fprintln(os.Stderr, runtimeErr.Error())
-			} else {
-				panic(r)
-			}
-		}
-	}()
-
 	result := stmt.Accept(i)
 	if err, ok := result.(error); ok {
 		return err
@@ -72,7 +75,7 @@ func (i *Interpreter) execute(stmt parser.Stmt) error {
 func (i *Interpreter) VisitPrintStmt(stmt *parser.PrintStmt) interface{} {
 	value, err := i.Evaluate(stmt.Expression)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	fmt.Println(i.stringify(value))
 	return nil
@@ -80,7 +83,10 @@ func (i *Interpreter) VisitPrintStmt(stmt *parser.PrintStmt) interface{} {
 
 func (i *Interpreter) VisitExpressionStmt(stmt *parser.ExpressionStmt) interface{} {
 	_, err := i.Evaluate(stmt.Expression)
-	return err
+	if err != nil {
+		panic(err)
+	}
+	return nil
 }
 
 func (i *Interpreter) stringify(value interface{}) string {
