@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/codecrafters-io/interpreter-starter-go/cmd/parser"
@@ -17,10 +18,12 @@ func (e *RuntimeError) Error() string {
 	return fmt.Sprintf("%s\n[line %d]", e.message, e.token.Line)
 }
 
-type Interpreter struct{}
+type Interpreter struct {
+	environment *Environment
+}
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{}
+	return &Interpreter{environment: NewEnvironment()}
 }
 
 func (i *Interpreter) Evaluate(expr parser.Expr) (result interface{}, err error) {
@@ -49,6 +52,16 @@ func (i *Interpreter) Interpret(statements []parser.Stmt) error {
 }
 
 func (i *Interpreter) execute(stmt parser.Stmt) error {
+	defer func() {
+		if r := recover(); r != nil {
+			if runtimeErr, ok := r.(*RuntimeError); ok {
+				fmt.Fprintln(os.Stderr, runtimeErr.Error())
+			} else {
+				panic(r)
+			}
+		}
+	}()
+
 	result := stmt.Accept(i)
 	if err, ok := result.(error); ok {
 		return err
@@ -145,6 +158,34 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 	}
 
 	// Unreachable
+	return nil
+}
+
+func (i *Interpreter) VisitVariableExpr(expr *parser.Variable) interface{} {
+	value, err := i.environment.Get(expr.Name)
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+func (i *Interpreter) VisitAssignExpr(expr *parser.Assign) interface{} {
+	value := expr.Value.Accept(i)
+
+	err := i.environment.Assign(expr.Name, value)
+	if err != nil {
+		panic(err)
+	}
+	return value
+}
+
+func (i *Interpreter) VisitVarStmt(stmt *parser.VarStmt) interface{} {
+	var value interface{}
+	if stmt.Initializer != nil {
+		value = stmt.Initializer.Accept(i)
+	}
+
+	i.environment.Define(stmt.Name.Lexeme, value)
 	return nil
 }
 

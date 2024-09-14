@@ -55,9 +55,14 @@ func main() {
 			os.Exit(65)
 		}
 		parser := parser.NewParser(tokens)
-		expression, _, err := parser.Parse()
+		expression, err := parser.ParseExpression()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
+			os.Exit(65)
+		}
+
+		if expression == nil {
+			fmt.Fprintln(os.Stderr, "No expression found to parse.")
 			os.Exit(65)
 		}
 
@@ -68,12 +73,13 @@ func main() {
 			os.Exit(65)
 		}
 		parser := parser.NewParser(tokens)
-		expression, _, err := parser.Parse()
+		expression, err := parser.ParseExpression()
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
 			os.Exit(70)
 		}
+
 		interpreter := interpreter.NewInterpreter()
 		result, err := interpreter.Evaluate(expression)
 		if err != nil {
@@ -86,9 +92,9 @@ func main() {
 			os.Exit(65)
 		}
 		parser := parser.NewParser(tokens)
-		_, statements, err := parser.Parse()
+		statements, err := parser.ParseStatements()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
+			fmt.Fprintln(os.Stderr, err.Error())
 			os.Exit(65)
 		}
 

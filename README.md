@@ -48,3 +48,12 @@ Note: This section is for stages 2 and beyond.
    `cmd/myinterpreter/main.go`.
 3. Commit your changes and run `git push origin master` to submit your solution
    to CodeCrafters. Test output will be streamed to your terminal.
+
+
+The code is divided into several packages, each responsible for a different part of the interpreter:
+
+Scanner: Tokenizes the input source code into a sequence of tokens.
+Parser: Parses the tokens into an Abstract Syntax Tree (AST).
+Interpreter: Evaluates the AST to execute the code.
+AstPrinter: (Optional) Prints the AST for debugging purposes.
+Main: The entry point that ties everything together.
