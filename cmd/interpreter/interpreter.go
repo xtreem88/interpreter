@@ -89,6 +89,20 @@ func (i *Interpreter) VisitExpressionStmt(stmt *parser.ExpressionStmt) interface
 	return nil
 }
 
+func (i *Interpreter) VisitBlockStmt(stmt *parser.BlockStmt) interface{} {
+	return i.executeBlock(stmt.Statements)
+}
+
+func (i *Interpreter) executeBlock(statements []parser.Stmt) interface{} {
+	for _, stmt := range statements {
+		err := i.execute(stmt)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return nil
+}
+
 func (i *Interpreter) stringify(value interface{}) string {
 	if value == nil {
 		return "nil"

@@ -84,6 +84,7 @@ type StmtVisitor interface {
 	VisitPrintStmt(stmt *PrintStmt) interface{}
 	VisitExpressionStmt(stmt *ExpressionStmt) interface{}
 	VisitVarStmt(stmt *VarStmt) interface{}
+	VisitBlockStmt(stmt *BlockStmt) interface{}
 }
 
 type Variable struct {
@@ -236,9 +237,44 @@ func (p *Parser) synchronize() {
 	}
 }
 
+type BlockStmt struct {
+	Statements []Stmt
+}
+
+func (b *BlockStmt) Accept(visitor StmtVisitor) interface{} {
+	return visitor.VisitBlockStmt(b)
+}
+
+func (p *Parser) block() ([]Stmt, error) {
+	var statements []Stmt
+
+	for !p.check(scanner.RIGHT_BRACE) && !p.isAtEnd() {
+		stmt, err := p.declaration()
+		if err != nil {
+			p.synchronize()
+			continue
+		}
+		statements = append(statements, stmt)
+	}
+
+	_, err := p.consume(scanner.RIGHT_BRACE, "Expect '}' after block.")
+	if err != nil {
+		return nil, err
+	}
+
+	return statements, nil
+}
+
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(scanner.PRINT) {
 		return p.printStatement()
+	}
+	if p.match(scanner.LEFT_BRACE) {
+		statements, err := p.block()
+		if err != nil {
+			return nil, err
+		}
+		return &BlockStmt{Statements: statements}, nil
 	}
 	return p.expressionStatement()
 }
@@ -457,5 +493,5 @@ func (p *Parser) consume(t scanner.TokenType, message string) (scanner.Token, er
 		return p.advance(), nil
 	}
 
-	return scanner.Token{}, fmt.Errorf("%s", message)
+	return scanner.Token{}, p.error(p.peek(), message)
 }

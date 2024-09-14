@@ -22,6 +22,10 @@ func (a *AstPrinter) PrintStmt(stmt parser.Stmt) string {
 	return stmt.Accept(a).(string)
 }
 
+func (a *AstPrinter) VisitBlockStmt(stmt *parser.BlockStmt) interface{} {
+	return stmt.Accept(a)
+}
+
 func (a *AstPrinter) VisitLiteralExpr(expr *parser.Literal) interface{} {
 	if expr.Value == nil {
 		return "nil"
