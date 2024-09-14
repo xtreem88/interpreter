@@ -10,58 +10,43 @@ import (
 )
 
 type RuntimeError struct {
-	token   scanner.Token
-	message string
+	Token   scanner.Token
+	Message string
 }
 
 func (e *RuntimeError) Error() string {
-	return fmt.Sprintf("[line %d]%s\n", e.token.Line, e.message)
+	return fmt.Sprintf("[line %d]%s\n", e.Token.Line, e.Message)
 }
 
 type Interpreter struct {
-	environment *Environment
+	environment     *Environment
+	HadRuntimeError bool
 }
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{environment: NewEnvironment()}
+	return &Interpreter{environment: NewEnvironment(nil)}
 }
 
-func (i *Interpreter) Evaluate(expr parser.Expr) (result interface{}, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			if runtimeErr, ok := r.(RuntimeError); ok {
-				err = &runtimeErr
-			} else {
-				panic(r)
-			}
-		}
-	}()
-
-	result = expr.Accept(i)
-	return result, nil
+func (i *Interpreter) Evaluate(expr parser.Expr) (interface{}, error) {
+	return expr.Accept(i), nil
 }
 
-func (i *Interpreter) Interpret(statements []parser.Stmt) error {
+func (i *Interpreter) Interpret(statements []parser.Stmt) {
 	defer func() {
 		if r := recover(); r != nil {
 			if runtimeErr, ok := r.(*RuntimeError); ok {
-				// Print the runtime error message
 				fmt.Fprintln(os.Stderr, runtimeErr.Error())
-				os.Exit(70)
+				i.HadRuntimeError = true
 			} else {
-				// Re-panic if it's not a RuntimeError
-				panic(r)
+				fmt.Fprintf(os.Stderr, "Unexpected error: %v\n", r)
+				i.HadRuntimeError = true
 			}
 		}
 	}()
 
 	for _, stmt := range statements {
-		err := i.execute(stmt)
-		if err != nil {
-			return err // Return the error to stop execution
-		}
+		i.execute(stmt)
 	}
-	return nil
 }
 
 func (i *Interpreter) execute(stmt parser.Stmt) error {
@@ -90,17 +75,20 @@ func (i *Interpreter) VisitExpressionStmt(stmt *parser.ExpressionStmt) interface
 }
 
 func (i *Interpreter) VisitBlockStmt(stmt *parser.BlockStmt) interface{} {
-	return i.executeBlock(stmt.Statements)
+	newEnv := NewEnvironment(i.environment)
+	i.executeBlock(stmt.Statements, newEnv)
+	return nil
 }
 
-func (i *Interpreter) executeBlock(statements []parser.Stmt) interface{} {
+func (i *Interpreter) executeBlock(statements []parser.Stmt, environment *Environment) {
+	previous := i.environment
+	defer func() { i.environment = previous }()
+
+	i.environment = environment
+
 	for _, stmt := range statements {
-		err := i.execute(stmt)
-		if err != nil {
-			panic(err)
-		}
+		i.execute(stmt)
 	}
-	return nil
 }
 
 func (i *Interpreter) stringify(value interface{}) string {
@@ -136,7 +124,7 @@ func (i *Interpreter) VisitUnaryExpr(expr *parser.Unary) interface{} {
 		if num, ok := right.(float64); ok {
 			return -num
 		}
-		panic(RuntimeError{token: expr.Operator, message: "Operand must be a number."})
+		panic(RuntimeError{Token: expr.Operator, Message: "Operand must be a number."})
 	case scanner.BANG:
 		return !i.isTruthy(right)
 	}
@@ -184,7 +172,10 @@ func (i *Interpreter) VisitBinaryExpr(expr *parser.Binary) interface{} {
 func (i *Interpreter) VisitVariableExpr(expr *parser.Variable) interface{} {
 	value, err := i.environment.Get(expr.Name)
 	if err != nil {
-		panic(err)
+		panic(&RuntimeError{
+			Token:   expr.Name,
+			Message: err.Error(),
+		})
 	}
 	return value
 }
@@ -202,9 +193,8 @@ func (i *Interpreter) VisitAssignExpr(expr *parser.Assign) interface{} {
 func (i *Interpreter) VisitVarStmt(stmt *parser.VarStmt) interface{} {
 	var value interface{}
 	if stmt.Initializer != nil {
-		value = stmt.Initializer.Accept(i)
+		value, _ = i.Evaluate(stmt.Initializer)
 	}
-
 	i.environment.Define(stmt.Name.Lexeme, value)
 	return nil
 }
@@ -213,7 +203,7 @@ func (i *Interpreter) checkNumberOperands(operator scanner.Token, left, right in
 	leftNum, leftOk := left.(float64)
 	rightNum, rightOk := right.(float64)
 	if !leftOk || !rightOk {
-		panic(RuntimeError{token: operator, message: "Operands must be numbers."})
+		panic(RuntimeError{Token: operator, Message: "Operands must be numbers."})
 	}
 
 	switch operator.Type {
@@ -225,7 +215,7 @@ func (i *Interpreter) checkNumberOperands(operator scanner.Token, left, right in
 		return leftNum * rightNum
 	case scanner.SLASH:
 		if rightNum == 0 {
-			panic(RuntimeError{token: operator, message: "Division by zero."})
+			panic(RuntimeError{Token: operator, Message: "Division by zero."})
 		}
 		return leftNum / rightNum
 	case scanner.GREATER:

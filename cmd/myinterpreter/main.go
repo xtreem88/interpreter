@@ -69,24 +69,32 @@ func main() {
 		printer := astprinter.NewAstPrinter()
 		fmt.Println(printer.Print(expression))
 	case "evaluate":
-		if scanner.HadError() {
-			os.Exit(65)
-		}
 		parser := parser.NewParser(tokens)
 		expression, err := parser.ParseExpression()
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing: %v\n", err)
-			os.Exit(70)
-		}
-
-		interpreter := interpreter.NewInterpreter()
-		result, err := interpreter.Evaluate(expression)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err.Error())
-			os.Exit(70)
+			os.Exit(65)
 		}
-		fmt.Println(interpreter.Stringify(result))
+
+		// Create the interpreter
+		interp := interpreter.NewInterpreter()
+
+		// Add error handling with defer and recover
+		defer func() {
+			if r := recover(); r != nil {
+				if runtimeErr, ok := r.(*interpreter.RuntimeError); ok {
+					fmt.Fprintln(os.Stderr, runtimeErr.Error())
+				} else {
+					fmt.Fprintf(os.Stderr, "Unexpected error: %v\n", r)
+				}
+				os.Exit(70)
+			}
+		}()
+
+		// Evaluate the expression
+		result, _ := interp.Evaluate(expression)
+		fmt.Println(interp.Stringify(result))
+		os.Exit(0)
 	case "run":
 		if scanner.HadError() {
 			os.Exit(65)
@@ -99,9 +107,8 @@ func main() {
 		}
 
 		interpreter := interpreter.NewInterpreter()
-		err = interpreter.Interpret(statements)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Runtime error: %v\n", err)
+		interpreter.Interpret(statements)
+		if interpreter.HadRuntimeError {
 			os.Exit(70)
 		}
 	default:
